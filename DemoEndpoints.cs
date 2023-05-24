@@ -1,14 +1,15 @@
 using System.Globalization;
+using System.Net.Mime;
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 
-public class TempEndpoints : IEndpointsMapper
+public class DemoEndpoints : IEndpointsMapper
 {
     public static string[] summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
-    public  void MapEndpoints(IEndpointRouteBuilder app)
+    public void MapEndpoints(IEndpointRouteBuilder app)
     {
         app.MapGet("/weatherforecast", () =>
         {
@@ -33,15 +34,32 @@ public class TempEndpoints : IEndpointsMapper
         // GET /navigate/v1?location=43.8427,7.8527
         string handle(Location location) => $"Location: {location.Latitude}, {location.Longitude}";
         app.MapGet("/navigate/v1", handle);
-        
+
 
         // POST /navigate/v2?lat=43.8427&lon=7.8527
         app.MapPost("/navigate/v2", (Location2 location) => $"Location: {location.Latitude}, {location.Longitude}");
 
         app.MapGet("/xml_obj", () => Results.Extensions.Xml(new object[] { "a", 1, 2.2, new object[] { "a", 1, 2.2 } }));
         app.MapGet("/xml_int_arr", () => Results.Extensions.Xml(new[] { 1, 2, 3 }));
+
+        app.MapGet("/sampleresponse", () =>
+        {
+            return Results.Ok(new ResponseData("My Response"));
+        })
+        .Produces<ResponseData>(StatusCodes.Status200OK)
+        .WithTags("Sample")
+        .WithName("SampleResponseOperation"); // operation ids to Open API
+        app.MapGet("/sampleresponseskipped", () =>
+        {
+            return Results.Ok(new ResponseData("My Response Skipped"));
+        }).ExcludeFromDescription();
+        app.MapGet("/{id}", (int id) => Results.Ok(id));
+        app.MapPost("/", (ResponseData data) => Results.Ok(data))
+           .Accepts<ResponseData>(MediaTypeNames.Application.Json);
     }
 }
+
+record ResponseData(string str);
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
 {
