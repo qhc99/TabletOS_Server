@@ -1,6 +1,5 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,8 +58,5 @@ app.UseCors("MyCustomPolicy");
 
 app.UseHttpsRedirection();
 app.MapRefelectedEndpoints(Assembly.GetExecutingAssembly());
-
-
-
 app.Run();
 
