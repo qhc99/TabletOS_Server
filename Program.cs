@@ -50,6 +50,7 @@ builder.Services.AddCors(options => options.AddPolicy("MyCustomPolicy", corsPoli
 var startupConfig = builder.Configuration.
     GetSection(nameof(MyCustomStartupObject)).
     Get<MyCustomStartupObject>();
+    
 // config file validation
 builder.Services.AddOptions<ConfigWithValidation>().
     Bind(builder.Configuration.GetSection(nameof(ConfigWithValidation))).
@@ -106,8 +107,8 @@ app.UseCors("MyCustomPolicy");
 
 // logging middleware
 app.UseW3CLogging();
-
 app.UseHttpsRedirection();
+
 // add endpoints by reflection
 app.MapRefelectedEndpoints();
 
