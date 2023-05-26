@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Hellang.Middleware.ProblemDetails;
 using Microsoft.AspNetCore.Cors.Infrastructure;
@@ -69,6 +70,11 @@ builder.Services.AddW3CLogging(logging =>
     logging.LoggingFields = W3CLoggingFields.All;
 });
 builder.Services.AddScoped<LogGenerator>();
+builder.Logging.AddJsonConsole(options =>
+ options.JsonWriterOptions = new JsonWriterOptions()
+ {
+     Indented = true
+ });
 
 // middleware
 var app = builder.Build();
@@ -152,7 +158,22 @@ logGenerator) =>
 })
 .WithName("StartLog");
 
+// console logging
+app.MapGet("/first-log", (ILogger<CategoryFiltered> loggerCategory, ILogger<MyCategoryAlert> loggerAlertCategory)
+=>
+{
+    loggerCategory.LogInformation("I'm information {MyName}", "My Name Information");
+    loggerCategory.LogDebug("I'm debug {MyName}", "My Name Debug");
+    loggerCategory.LogInformation("I'm debug {Data}", new PayloadData("CategoryRoot", "Debug"));
+    loggerAlertCategory.LogInformation("I'm information {MyName}", "Alert Information");
+    loggerAlertCategory.LogDebug("I'm debug {MyName}", "Alert Debug");
+    var p = new PayloadData("AlertCategory", "Debug");
+    loggerAlertCategory.LogDebug("I'm debug {Data}", p);
+    return Results.Ok();
+})
+.WithName("GetFirstLog");
+
 app.Run();
 
-internal record PostData(DateTime Date, string Name);
+
 
