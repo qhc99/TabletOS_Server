@@ -65,17 +65,23 @@ builder.Services.AddProblemDetails(options =>
 });
 
 // logging
+// Infrastructure logging
 builder.Services.AddW3CLogging(logging =>
 {
     logging.LoggingFields = W3CLoggingFields.All;
 });
+// source generator logging
 builder.Services.AddScoped<LogGenerator>();
+
+// console logging
 builder.Logging.AddJsonConsole(options =>
  options.JsonWriterOptions = new JsonWriterOptions()
  {
      Indented = true
  });
 
+
+//-----------------------------
 // middleware
 var app = builder.Build();
 
@@ -98,6 +104,13 @@ if (app.Environment.IsDevelopment())
 // cors
 app.UseCors("MyCustomPolicy");
 
+// logging middleware
+app.UseW3CLogging();
+
+app.UseHttpsRedirection();
+// add endpoints by reflection
+app.MapRefelectedEndpoints();
+
 // config info endpoint
 app.MapGet("/read/configurations", (IConfiguration configuration) =>
         {
@@ -112,66 +125,6 @@ app.MapGet("/read/configurations", (IConfiguration configuration) =>
             });
         })
         .WithName("ReadConfigurations");
-
-// config validation endpoint
-app.MapGet("/read/options", (IOptions<ConfigWithValidation> optionsValidation) =>
-{
-    return Results.Ok(new
-    {
-        Validation = optionsValidation.Value
-    });
-})
-.WithName("ReadOptions");
-
-// logging middleware
-app.UseW3CLogging();
-
-app.UseHttpsRedirection();
-// add endpoints by reflection
-app.MapRefelectedEndpoints(Assembly.GetExecutingAssembly());
-
-// test error handling package
-app.MapGet("/not-implemented-exception", () =>
-{
-    throw new NotImplementedException
- ("This is an exception thrown from a Minimal API.");
-}).
-    Produces<ProblemDetails>(StatusCodes.Status501NotImplemented).
-    WithName("NotImplementedExceptions");
-
-// w3c logging endpoint
-app.MapGet(
-    "/first-w3c-log",
-    (IWebHostEnvironment webHostEnvironment) =>
-    {
-        return Results.Ok(new { PathToWrite = webHostEnvironment.ContentRootPath });
-    }).
-        WithName("GetW3CLog");
-
-// logger generator endpoint
-app.MapPost("/start-log", (PostData data, LogGenerator
-logGenerator) =>
-{
-    logGenerator.StartEndpointSignal("start-log", data);
-    logGenerator.LogLevelFilteredAtRuntime(LogLevel.Trace,
-    "start-log", data);
-})
-.WithName("StartLog");
-
-// console logging
-app.MapGet("/first-log", (ILogger<CategoryFiltered> loggerCategory, ILogger<MyCategoryAlert> loggerAlertCategory)
-=>
-{
-    loggerCategory.LogInformation("I'm information {MyName}", "My Name Information");
-    loggerCategory.LogDebug("I'm debug {MyName}", "My Name Debug");
-    loggerCategory.LogInformation("I'm debug {Data}", new PayloadData("CategoryRoot", "Debug"));
-    loggerAlertCategory.LogInformation("I'm information {MyName}", "Alert Information");
-    loggerAlertCategory.LogDebug("I'm debug {MyName}", "Alert Debug");
-    var p = new PayloadData("AlertCategory", "Debug");
-    loggerAlertCategory.LogDebug("I'm debug {Data}", p);
-    return Results.Ok();
-})
-.WithName("GetFirstLog");
 
 app.Run();
 

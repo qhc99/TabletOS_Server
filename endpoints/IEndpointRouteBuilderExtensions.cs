@@ -2,8 +2,9 @@ using System.Reflection;
 
 public static class IEndpointRouteBuilderExtensions
 {
-    public static void MapRefelectedEndpoints(this IEndpointRouteBuilder app, Assembly assembly)
+    public static void MapRefelectedEndpoints(this IEndpointRouteBuilder app)
     {
+        Assembly assembly = Assembly.GetExecutingAssembly();
         var endpointsMapperInterfaceType = typeof(IEndpointsMapper);
         var endpointsMapperTypes = assembly.GetTypes().Where(t =>
         t.IsClass &&
