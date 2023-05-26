@@ -5,8 +5,7 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 public class CorrelationIdOperationFilter : IOperationFilter
 {
     private readonly IWebHostEnvironment environment;
-    public CorrelationIdOperationFilter(IWebHostEnvironment
- environment)
+    public CorrelationIdOperationFilter(IWebHostEnvironment environment)
     {
         this.environment = environment;
     }
@@ -16,8 +15,7 @@ public class CorrelationIdOperationFilter : IOperationFilter
     /// </summary>
     /// <param name="operation"></param>
     /// <param name="context"></param>
-    public void Apply(OpenApiOperation operation,
- OperationFilterContext context)
+    public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
         if (operation.Parameters == null)
         {

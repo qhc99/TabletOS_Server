@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Hellang.Middleware.ProblemDetails;
 using Microsoft.AspNetCore.Cors.Infrastructure;
+using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -36,7 +37,7 @@ builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =
     // options.SerializerOptions.IgnoreReadOnlyProperties = true;
 });
 
-var corsPolicy = new CorsPolicyBuilder("http://127.0.0.1")
+var corsPolicy = new CorsPolicyBuilder("http://127.0.0.1:5500")
     .AllowAnyHeader()
     .AllowAnyMethod()
     .Build();
@@ -62,6 +63,13 @@ builder.Services.AddProblemDetails(options =>
     options.MapToStatusCode<NotImplementedException>(StatusCodes.Status501NotImplemented);
 });
 
+// logging
+builder.Services.AddW3CLogging(logging =>
+{
+    logging.LoggingFields = W3CLoggingFields.All;
+});
+builder.Services.AddScoped<LogGenerator>();
+
 // middleware
 var app = builder.Build();
 
@@ -77,7 +85,7 @@ if (app.Environment.IsDevelopment())
     app.Use((context, next) =>
     {
         var origin = context.Request.Headers.Origin.ToString();
-        app.Logger.LogInformation($"new request origin: {origin}, pass: {corsPolicy.IsOriginAllowed(origin)}");
+        app.Logger.LogDebug("new request origin: {Origin}, pass: {Pass}", origin, corsPolicy.IsOriginAllowed(origin));
         return next(context);
     });
 }
@@ -109,7 +117,11 @@ app.MapGet("/read/options", (IOptions<ConfigWithValidation> optionsValidation) =
 })
 .WithName("ReadOptions");
 
+// logging middleware
+app.UseW3CLogging();
+
 app.UseHttpsRedirection();
+// add endpoints by reflection
 app.MapRefelectedEndpoints(Assembly.GetExecutingAssembly());
 
 // test error handling package
@@ -121,7 +133,26 @@ app.MapGet("/not-implemented-exception", () =>
     Produces<ProblemDetails>(StatusCodes.Status501NotImplemented).
     WithName("NotImplementedExceptions");
 
+// w3c logging endpoint
+app.MapGet(
+    "/first-w3c-log",
+    (IWebHostEnvironment webHostEnvironment) =>
+    {
+        return Results.Ok(new { PathToWrite = webHostEnvironment.ContentRootPath });
+    }).
+        WithName("GetW3CLog");
 
+// logger generator endpoint
+app.MapPost("/start-log", (PostData data, LogGenerator
+logGenerator) =>
+{
+    logGenerator.StartEndpointSignal("start-log", data);
+    logGenerator.LogLevelFilteredAtRuntime(LogLevel.Trace,
+    "start-log", data);
+})
+.WithName("StartLog");
 
 app.Run();
+
+internal record PostData(DateTime Date, string Name);
 
