@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 public class DemoEndpoints : IEndpointsMapper
 {
-    
+
     public void MapEndpoints(IEndpointRouteBuilder app)
     {
         app.MapGet("/api/v1/{i:int}", (int i) => $"i:{i}");
@@ -52,15 +52,14 @@ public class Location
 {
     public double Latitude { get; set; }
     public double Longitude { get; set; }
-    public static bool TryParse(string? value,
-      IFormatProvider? provider, out Location? location)
+    public static bool TryParse(string? value, IFormatProvider? provider, out Location? location)
     {
         if (!string.IsNullOrWhiteSpace(value))
         {
-            var values = value.Split(',',
-            StringSplitOptions.RemoveEmptyEntries);
-            if (values.Length == 2 && double.TryParse(values[0], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var latitude) &&
-            double.TryParse(values[1], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var longitude))
+            var values = value.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (values.Length == 2 && 
+                double.TryParse(values[0], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var latitude) &&
+                double.TryParse(values[1], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var longitude))
             {
                 location = new Location
                 {
@@ -84,7 +83,7 @@ public class Location2
     public static ValueTask<Location2?> BindAsync(HttpContext context, ParameterInfo parameter)
     {
         if (double.TryParse(context.Request.Query["lat"], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var latitude) &&
-        double.TryParse(context.Request.Query["lon"], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var longitude))
+            double.TryParse(context.Request.Query["lon"], NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var longitude))
         {
             var location = new Location2
             { Latitude = latitude, Longitude = longitude };
