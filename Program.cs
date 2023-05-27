@@ -85,6 +85,8 @@ builder.Logging.AddJsonConsole(options =>
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddFluentValidationRulesToSwagger();
 
+// DTO
+builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
 //-----------------------------
 // middleware
