@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -87,6 +88,9 @@ builder.Services.AddFluentValidationRulesToSwagger();
 
 // DTO
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
+
+// EF Core
+builder.Services.AddDbContext<IcecreamDb>(options => options.UseInMemoryDatabase("icecreams"));
 
 //-----------------------------
 // middleware
