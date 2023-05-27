@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using FluentValidation;
 using Hellang.Middleware.ProblemDetails;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.HttpLogging;
@@ -44,13 +45,13 @@ var corsPolicy = new CorsPolicyBuilder("http://127.0.0.1:5500")
     .Build();
 
 // Custom Policy
-builder.Services.AddCors(options => options.AddPolicy("MyCustomPolicy", corsPolicy));
+// builder.Services.AddCors(options => options.AddPolicy("MyCustomPolicy", corsPolicy));
 
 // config file
 var startupConfig = builder.Configuration.
     GetSection(nameof(MyCustomStartupObject)).
     Get<MyCustomStartupObject>();
-    
+
 // config file validation
 builder.Services.AddOptions<ConfigWithValidation>().
     Bind(builder.Configuration.GetSection(nameof(ConfigWithValidation))).
@@ -81,13 +82,13 @@ builder.Logging.AddJsonConsole(options =>
      Indented = true
  });
 
+// validation register
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
 
 //-----------------------------
 // middleware
 var app = builder.Build();
-
-// use error handling middleware
-app.UseProblemDetails();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -102,8 +103,12 @@ if (app.Environment.IsDevelopment())
         return next(context);
     });
 }
+
+// use error handling middleware
+app.UseProblemDetails();
+
 // cors
-app.UseCors("MyCustomPolicy");
+// app.UseCors("MyCustomPolicy");
 
 // logging middleware
 app.UseW3CLogging();
