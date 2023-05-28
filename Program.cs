@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using FluentValidation;
 using Hellang.Middleware.ProblemDetails;
 using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Mvc;
@@ -45,7 +46,7 @@ var corsPolicy = new CorsPolicyBuilder("http://127.0.0.1:5500")
     .Build();
 
 // Custom Policy
-// builder.Services.AddCors(options => options.AddPolicy("MyCustomPolicy", corsPolicy));
+builder.Services.AddCors(options => options.AddPolicy("MyCustomPolicy", corsPolicy));
 
 // config file
 var startupConfig = builder.Configuration.
@@ -68,14 +69,14 @@ builder.Services.AddProblemDetails(options =>
 
 // logging
 // Infrastructure logging
-builder.Services.AddW3CLogging(logging =>
-{
-    logging.LoggingFields = W3CLoggingFields.All;
-});
+// builder.Services.AddW3CLogging(logging =>
+// {
+//     logging.LoggingFields = W3CLoggingFields.All;
+// });
 // source generator logging
 builder.Services.AddScoped<LogGenerator>();
 
-// console logging
+// json console logging
 builder.Logging.AddJsonConsole(options =>
  options.JsonWriterOptions = new JsonWriterOptions()
  {
@@ -92,7 +93,12 @@ builder.Services.AddAutoMapper(typeof(Program).Assembly);
 // EF Core
 builder.Services.AddDbContext<IcecreamDb>(options => options.UseInMemoryDatabase("icecreams"));
 
-//-----------------------------
+// auth
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddAuthorization();
+
+
+//=================================================
 // middleware
 var app = builder.Build();
 
@@ -114,11 +120,15 @@ if (app.Environment.IsDevelopment())
 app.UseProblemDetails();
 
 // cors
-// app.UseCors("MyCustomPolicy");
+app.UseCors("MyCustomPolicy");
 
 // logging middleware
-app.UseW3CLogging();
+// app.UseW3CLogging();
 app.UseHttpsRedirection();
+
+// auth
+app.UseAuthentication();
+app.UseAuthorization();
 
 // add endpoints by reflection
 app.MapRefelectedEndpoints();
