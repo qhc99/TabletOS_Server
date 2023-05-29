@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -5,6 +6,7 @@ using FluentValidation;
 using Hellang.Middleware.ProblemDetails;
 using MicroElements.Swashbuckle.FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Mvc;
@@ -138,7 +140,30 @@ builder.Services.
                 ValidAudience = "Minimal APIs Client"
             }
         );
-builder.Services.AddAuthorization();
+// policy based authorization
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Tenant42", policy => policy.RequireClaim("tenant-id", "42"));
+    options.AddPolicy(
+        "TimedAccessPolicy",
+        policy =>
+        {
+            policy.Requirements.Add(new MaintenanceTimeRequirement
+            {
+                StartTime = new TimeOnly(0, 0, 0),
+                EndTime = new TimeOnly(4, 0, 0)
+            });
+        });
+    // # Redefine default policy 
+    // var policy = new AuthorizationPolicyBuilder().
+    //     RequireAuthenticatedUser().
+    //     RequireClaim(ClaimTypes.Name).Build();
+    // options.DefaultPolicy = policy;
+
+    // # Enforce policy for the endpoints without [Authroize] attribute
+    // options.FallbackPolicy = options.DefaultPolicy;
+});
+builder.Services.AddScoped<IAuthorizationHandler, MaintenanceTimeAuthorizationHandler>();
 
 
 //=================================================

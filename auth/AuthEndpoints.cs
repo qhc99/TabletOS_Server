@@ -41,10 +41,22 @@ public class AuthEndpoints : IEndpointsMapper
                 return "This is a normal user";
             });
 
+        // policy based auth
+        app.MapGet("/api/policy-attribute-protected",
+        [Authorize(Policy = "Tenant42")] () => { });
 
+        app.MapGet("/api/policy-method-protected", () => { })
+        .RequireAuthorization("Tenant42");
+
+        // dynamic policy
+        app.MapGet("/api/custom-policy-protected",
+            [Authorize(Policy = "TimedAccessPolicy")] () => { });
+
+
+        // token issuer
         app.MapPost(
             "/api/auth/login",
-            (LoginRequest request) =>
+            [AllowAnonymous] (LoginRequest request) =>
             {
                 if (request.Username == "marco" && request.Password ==
                 "P@$$w0rd")
