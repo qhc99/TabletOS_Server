@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FluentValidation;
@@ -10,15 +11,19 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.Net.Http.Headers;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
+builder.Services.AddSwaggerGen(options =>
 {
-    c.SwaggerDoc("v1", new()
+    // config swagger
+    options.SwaggerDoc("v1", new()
     {
         Title = builder.Environment.ApplicationName,
         Version = "v1",
@@ -32,7 +37,33 @@ builder.Services.AddSwaggerGen(c =>
         License = new Microsoft.OpenApi.Models.OpenApiLicense(),
         TermsOfService = new("https://www.packtpub.com/")
     });
-    c.OperationFilter<CorrelationIdOperationFilter>();
+    options.OperationFilter<CorrelationIdOperationFilter>();
+
+    // auth
+    options.AddSecurityDefinition(
+        JwtBearerDefaults.AuthenticationScheme,
+        new OpenApiSecurityScheme
+        {
+            Type = SecuritySchemeType.ApiKey,
+            In = ParameterLocation.Header,
+            Name = HeaderNames.Authorization,
+            Description = "Insert the token with the 'Bearer' prefix"
+        });
+    options.AddSecurityRequirement(
+            new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference
+                        {
+                            Type = ReferenceType.SecurityScheme,
+                            Id = JwtBearerDefaults.AuthenticationScheme
+                        }
+                    },
+                    Array.Empty<string>()
+                }
+            });
 });
 builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
 {
@@ -85,6 +116,7 @@ builder.Logging.AddJsonConsole(options =>
 
 // validation register
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.TryAddTransient<IValidatorFactory, ServiceProviderValidatorFactory>();
 builder.Services.AddFluentValidationRulesToSwagger();
 
 // DTO
@@ -94,7 +126,18 @@ builder.Services.AddAutoMapper(typeof(Program).Assembly);
 builder.Services.AddDbContext<IcecreamDb>(options => options.UseInMemoryDatabase("icecreams"));
 
 // auth
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.
+    AddAuthentication(JwtBearerDefaults.AuthenticationScheme).
+    AddJwtBearer(options =>
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                // use config value in production
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("mysecuritystring")),
+                ValidIssuer = "https://www.packtpub.com",
+                ValidAudience = "Minimal APIs Client"
+            }
+        );
 builder.Services.AddAuthorization();
 
 
@@ -107,13 +150,6 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{builder.Environment.ApplicationName} v1"));
-    // check cors
-    app.Use((context, next) =>
-    {
-        var origin = context.Request.Headers.Origin.ToString();
-        app.Logger.LogDebug("new request origin: {Origin}, pass: {Pass}", origin, corsPolicy.IsOriginAllowed(origin));
-        return next(context);
-    });
 }
 
 // use error handling middleware

@@ -7,6 +7,7 @@ using Microsoft.IdentityModel.Tokens;
 public class AuthEndpoints : IEndpointsMapper
 {
     public record LoginRequest(string Username, string Password);
+
     public void MapEndpoints(IEndpointRouteBuilder app)
     {
         app.MapGet(
@@ -16,6 +17,30 @@ public class AuthEndpoints : IEndpointsMapper
             "/api/method-protected",
             () => "This endpoint is protected using the RequireAuthorization method").
             RequireAuthorization();
+
+        app.MapGet("/api/me", [Authorize] (ClaimsPrincipal user) => $"Logged username: {user.Identity?.Name}");
+
+        // role authorization
+        app.MapGet(
+            "/api/admin-attribute-protected",
+            [Authorize(Roles = "Admin")] () =>
+            { });
+        app.MapGet(
+            "/api/admin-method-protected",
+            () => { }).RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" });
+
+        // role check
+        app.MapGet(
+            "/api/role-check",
+            [Authorize] (ClaimsPrincipal user) =>
+            {
+                if (user.IsInRole("Administrator"))
+                {
+                    return "User is an Administrator";
+                }
+                return "This is a normal user";
+            });
+
 
         app.MapPost(
             "/api/auth/login",
@@ -27,7 +52,9 @@ public class AuthEndpoints : IEndpointsMapper
                     // Generate the JWT bearer...
                     var claims = new List<Claim>()
                         {
-                            new(ClaimTypes.Name, request.Username)
+                            new(ClaimTypes.Name, request.Username),
+                            new(ClaimTypes.Role, "Admin"),
+                            new(ClaimTypes.Role, "User"),
                         };
                     var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("mysecuritystring"));
                     var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
