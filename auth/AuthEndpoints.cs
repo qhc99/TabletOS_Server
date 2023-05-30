@@ -58,8 +58,8 @@ public class AuthEndpoints : IEndpointsMapper
             "/api/auth/login",
             [AllowAnonymous] (LoginRequest request) =>
             {
-                if (request.Username == "marco" && request.Password ==
-                "P@$$w0rd")
+                if (request.Username == "marco" &&
+                    request.Password == "P@$$w0rd")
                 {
                     // Generate the JWT bearer...
                     var claims = new List<Claim>()
